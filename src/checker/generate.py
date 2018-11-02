@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import random
 
-KEY_MAX = 10
+KEY_MAX = 500
 NONKEY_MAX = 100000
 
 if len(sys.argv) != 4:

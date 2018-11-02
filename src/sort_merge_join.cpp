@@ -312,9 +312,19 @@ public:
             oldS = S_part.size();
         }
 
+        string op, fop;
+        int off, en;
         for(int i = 0; i < R_part.size(); i++)
             for(int j = 0; j < S_part.size(); j++)
-                out_fd << R_part[i].tup << " " << S_part[j].tup << "\n";
+            {
+                op = R_part[i].tup + " " + S_part[j].tup + "\n";
+
+                off = op.find_first_of(" ");
+                en = op.find_first_of(" ", off+1);
+                fop = op.substr(0, off) + op.substr(en);
+                out_fd << fop;
+            }
+
         return 1;
     }
 

@@ -22,7 +22,6 @@ private:
     vector<string> bucket_paths;
     vector<ofstream> bucket_ofds;
     vector<ifstream> bucket_ifds;
-    // vector<vector<string> > bucket_bufs;
     vector<vector<pair<string, string> > > bucket_bufs;
     vector<int> bucket_size;
 
@@ -201,7 +200,7 @@ public:
         NBK = MM;
         hash_join_open();
 
-        // this stands for gen_next() function
+        // this is equaivalent to gen_next() function
         for(int i = 0; i < NBK; i++)
             hash_join_gen(i);
 
@@ -262,6 +261,9 @@ public:
             mp.insert({tup.first, tup.second});
         }
 
+        string op, fop;
+        int off, en;
+        
         while(1)
         {
             tup = big.rel_get_next(bid);
@@ -269,10 +271,17 @@ public:
 
             auto range = mp.equal_range(tup.first);
             for(auto it = range.first; it != range.second; it++)
+            {
                 if(is_R_small)
-                    out_fd << it->second << " " << tup.second << "\n";
+                    op = it->second + " " + tup.second + "\n";
                 else
-                    out_fd << tup.second << " " << it->second << "\n";
+                    op = tup.second + " " + it->second + "\n";
+
+                off = op.find_first_of(" ");
+                en = op.find_first_of(" ", off+1);
+                fop = op.substr(0, off) + op.substr(en);
+                out_fd << fop;
+            }
         }
     }
 
