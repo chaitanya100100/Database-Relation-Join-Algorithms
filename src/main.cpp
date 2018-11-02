@@ -1,10 +1,13 @@
 #include<bits/stdc++.h>
 using namespace std;
 
-#include "sort_merge_join.cpp"
-
 // number of tuples in one block
-int TB = 10;
+int TB = 50;
+// folder to store intermediate files
+string INTER_PATH = "../files/inter_files";
+
+#include "sort_merge_join.cpp"
+#include "hash_join.cpp"
 
 int main(int argc, char **argv)
 {
@@ -31,7 +34,11 @@ int main(int argc, char **argv)
     R_fd.close();
     S_fd.close();
 
-    SortMergeJoin(R_path, S_path, M, TB);
-
+    if(type == "sort")
+        SortMergeJoin(R_path, S_path, M, TB);
+    else if(type == "hash")
+        HashJoin(R_path, S_path, M, TB);
+    else
+        cerr << "type should be sort or hash" << endl;
     return 0;
 }

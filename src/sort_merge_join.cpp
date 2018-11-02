@@ -1,7 +1,6 @@
 #include<bits/stdc++.h>
 using namespace std;
 
-string INTER_PATH = "../files/inter_files";
 
 void write_buffer(vector<pair<string, string> > & buf, string fpath)
 {
@@ -18,7 +17,7 @@ void write_buffer(vector<pair<string, string> > & buf, string fpath)
 
 
 class SortMergeJoin;
-class Relation
+class RelationSort
 {
 private:
     int T; // number of tuples of relation
@@ -47,8 +46,7 @@ public:
 
         int off = path.find_last_of("/");
         if(off == string::npos) this->name = path;
-        else this->name = path.substr(off, path.length() - off);
-
+        else this->name = path.substr(off+1, path.length() - off);
 
         fd.open(path);
         if(!fd.good())
@@ -56,9 +54,8 @@ public:
             cerr << "Error in opening " << path << endl;
             exit(-1);
         }
-
         T = count(istreambuf_iterator<char>(fd), istreambuf_iterator<char>(), '\n');
-        fd.seekg(0, ios::beg);
+        fd.close();
 
         B = (T + TB - 1) / TB;
     }
@@ -66,7 +63,15 @@ public:
     // create sorted sublists
     void create_sorted_sublists()
     {
+        fd.open(path);
+        if(!fd.good())
+        {
+            cerr << "Error in opening " << path << endl;
+            exit(-1);
+        }
+
         sublist_paths.clear();
+        subl_fds.clear();
 
         string line, key;
         int idx = 0, offset;
@@ -101,8 +106,11 @@ public:
             idx++;
             outbuf.clear();
         }
+    }
 
-        loaded_subl = vector<vector<pair<string, string> > >(idx);
+    void init_rel_get_next()
+    {
+        loaded_subl = vector<vector<pair<string, string> > >(sublist_paths.size());
         for(int i = 0; i < sublist_paths.size(); i++)
         {
             subl_fds.push_back(ifstream(sublist_paths[i]));
@@ -143,8 +151,11 @@ public:
     {
         fd.close();
         for(int i = 0; i < subl_fds.size(); i++)
+        {
             if(subl_fds[i].is_open())
                 subl_fds[i].close();
+            // remove(sublist_paths[i].c_str());
+        }
     }
 };
 
@@ -170,8 +181,10 @@ private:
     int TB; // number of tuples in a block
     string R_path;
     string S_path;
-    Relation R, S;
+    RelationSort R, S;
     multimap<string, Tuple> mp;
+    ofstream out_fd;
+    string out_path;
 
 public:
 
@@ -185,6 +198,44 @@ public:
         cout << "TB : " << TB << endl;
 
         join_open();
+
+        init_join_gen_next();
+
+        while(join_gen_next());
+
+        join_close();
+
+        cout << "done" << endl;
+    }
+
+    void join_open()
+    {
+        R.init(R_path, TB, MM, 1);
+        S.init(S_path, TB, MM, 0);
+        cout << "R.T : " << R.T << endl;
+        cout << "R.B : " << R.B << endl;
+        cout << "S.T : " << S.T << endl;
+        cout << "S.B : " << S.B << endl;
+
+        if(R.B + S.B >= (MM-1)*MM)
+        {
+            cerr << "M is too small for given input relations R and S" << endl;
+            exit(-1);
+        }
+
+        R.create_sorted_sublists();
+        S.create_sorted_sublists();
+
+        out_path = "./" + R.name + "_" + S.name + "_join.txt";
+        out_path = "out_sort.txt";
+        cout << out_path << endl;
+        out_fd.open(out_path);
+    }
+
+    void init_join_gen_next()
+    {
+        R.init_rel_get_next();
+        S.init_rel_get_next();
 
         mp.clear();
         pair<string, string> tup;
@@ -209,29 +260,6 @@ public:
                 mp.insert({tup.first, x});
             }
         }
-
-        while(join_gen_next());
-
-        join_close();
-    }
-
-    void join_open()
-    {
-        R.init(R_path, TB, MM, 1);
-        S.init(S_path, TB, MM, 0);
-        cout << "R.T : " << R.T << endl;
-        cout << "R.B : " << R.B << endl;
-        cout << "S.T : " << S.T << endl;
-        cout << "S.B : " << S.B << endl;
-
-        if(R.B + S.B >= (MM-1)*MM)
-        {
-            cerr << "M is too small for given input relations R and S" << endl;
-            exit(-1);
-        }
-
-        R.create_sorted_sublists();
-        S.create_sorted_sublists();
     }
 
     int join_gen_next()
@@ -243,10 +271,7 @@ public:
         //     " | " << (it->second).subl_idx << endl;
         // }
         if(mp.empty())
-        {
-            cout << "done" << endl;
             return 0;
-        }
 
         pair<string, Tuple> small = *mp.begin();
         vector<Tuple> R_part, S_part;
@@ -289,8 +314,7 @@ public:
 
         for(int i = 0; i < R_part.size(); i++)
             for(int j = 0; j < S_part.size(); j++)
-                cout << R_part[i].tup << " " << S_part[j].tup << endl;
-
+                out_fd << R_part[i].tup << " " << S_part[j].tup << "\n";
         return 1;
     }
 
@@ -298,5 +322,6 @@ public:
     {
         R.rel_close();
         S.rel_close();
+        out_fd.close();
     }
 };
